@@ -1,0 +1,149 @@
+/* Design tokens. Screens read these; no hard-coded colours elsewhere. */
+
+:root {
+  color-scheme: light dark;
+
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-reading: Cambria, Georgia, 'Times New Roman', serif;
+  --font-page: Cambria, Georgia, 'Times New Roman', serif;
+  --font-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-pill: 999px;
+
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  --bg: #f3f3f3;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --surface-3: #efefef;
+  --surface-hover: #f0f0f0;
+  --surface-selected: #e5f1fb;
+  --text: #1a1a1a;
+  --text-2: #5c5c5c;
+  --text-3: #767676;
+  --line: #e2e2e2;
+  --line-strong: #c9c9c9;
+  --accent: #0067c0;
+  --accent-hover: #005a9e;
+  --accent-pressed: #004e8c;
+  --accent-soft: #e5f1fb;
+  --on-accent: #ffffff;
+  --ok: #0f7b0f;
+  --ok-bg: #dff6dd;
+  --warn: #8a5300;
+  --warn-bg: #fff4ce;
+  --danger: #b3261e;
+  --danger-bg: #fde7e9;
+  --info: #005a9e;
+  --info-bg: #e5f1fb;
+  --outline: #5c5c5c;
+  --focus: #0067c0;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 8%);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 14%), 0 1px 3px rgb(0 0 0 / 10%);
+  --shadow-dialog: 0 16px 40px rgb(0 0 0 / 18%);
+  --highlight: #fff3b0;
+  --page: #ffffff;
+  --page-text: #161616;
+  --scrim: rgb(0 0 0 / 32%);
+
+  --menu-h: 32px;
+  --ribbon-h: 88px;
+  --nav-w: 242px;
+  --side-w: 304px;
+  --status-h: 26px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1f1f;
+    --surface: #2b2b2b;
+    --surface-2: #252525;
+    --surface-3: #333333;
+    --surface-hover: #363636;
+    --surface-selected: #123a52;
+    --text: #f5f5f5;
+    --text-2: #c3c3c3;
+    --text-3: #9b9b9b;
+    --line: #3b3b3b;
+    --line-strong: #525252;
+    --accent: #4cc2ff;
+    --accent-hover: #6ccaff;
+    --accent-pressed: #2ab0ee;
+    --accent-soft: #143a4d;
+    --on-accent: #00243a;
+    --ok: #6ccb5f;
+    --ok-bg: #1f3a1e;
+    --warn: #fce100;
+    --warn-bg: #3a3310;
+    --danger: #ff99a4;
+    --danger-bg: #41161a;
+    --info: #7cc7ff;
+    --info-bg: #123a52;
+    --outline: #c3c3c3;
+    --focus: #4cc2ff;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-2: 0 10px 28px rgb(0 0 0 / 50%);
+    --shadow-dialog: 0 18px 46px rgb(0 0 0 / 55%);
+    --highlight: #5a4a00;
+    --page: #fdfdfb;
+    --page-text: #161616;
+    --scrim: rgb(0 0 0 / 52%);
+  }
+}
+
+:root[data-interface-size='large'] {
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 26px;
+  --nav-w: 268px;
+  --side-w: 332px;
+  --menu-h: 36px;
+  --ribbon-h: 94px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+  }
+}
+
+:root[data-motion='off'] {
+  --motion-fast: 1ms;
+  --motion-base: 1ms;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --accent: Highlight;
+    --accent-soft: Canvas;
+    --focus: Highlight;
+    --line: CanvasText;
+    --line-strong: CanvasText;
+  }
+}

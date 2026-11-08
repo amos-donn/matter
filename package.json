@@ -1,0 +1,27 @@
+{
+  "name": "matter-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Legal Matter Workspace — a local-first case workspace for Vermont appellate practice",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false --pretty false"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "fflate": "^0.8.2",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.3"
+  }
+}
