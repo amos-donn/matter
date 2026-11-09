@@ -896,3 +896,27 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
   letter-spacing: 0.04em;
   color: var(--text-2);
 }
+
+.reader-cite-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  max-width: 74ch;
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.reader-cite-passage {
+  max-height: 4.5em;
+  overflow: hidden;
+  font-family: var(--font-reading);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.reader-cite-controls { display: flex; gap: 8px; margin-top: 8px; }
+.reader-cite-controls .input { flex: 1; min-width: 0; }
+.reader-cite-bar .field-hint { margin-top: 6px; }

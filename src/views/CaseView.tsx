@@ -216,7 +216,7 @@ function Research({ caseId }: { caseId: string }) {
             <div className="authority-card" key={link.id}>
               <div className="spread"><div><div className="authority-title">{auth.caseName}</div><div className="authority-cite">{auth.reporter} ({auth.year}) · {auth.court}</div></div>{cite ? <Status state={cite.status} /> : <Badge tone="outline">No citation link</Badge>}</div>
               <div className="authority-summary">{auth.summary}</div>
-              <div className="source-row"><span>{auth.provenance}</span>{auth.text ? <button className="linkish" onClick={() => openDialog('opinion-reader', { caseName: auth.caseName, citation: auth.reporter, court: auth.court, year: auth.year, text: auth.text })}>Read opinion</button> : null}</div>
+              <div className="source-row"><span>{auth.provenance}</span>{auth.text ? <button className="linkish" onClick={() => openDialog('opinion-reader', { caseName: auth.caseName, citation: auth.reporter, court: auth.court, year: auth.year, text: auth.text, authorityId: auth.id, caseId, docId: doc?.id, url: auth.url, snippet: auth.summary })}>Read opinion</button> : null}</div>
               {link.note ? <div className="authority-note">{link.note}</div> : null}
               {citing.length ? <div className="citing-refs"><div className="tiny">Citing references in the index (lookup aid, not treatment)</div>{citing.slice(0, 4).map(c => <div className="citing-ref" key={c.id}>{c.caseName}, {c.reporter}</div>)}</div> : null}
               <div className="authority-actions">
@@ -251,7 +251,7 @@ function Research({ caseId }: { caseId: string }) {
                     {result.snippet ? <div className="authority-summary">{result.snippet}</div> : null}
                     <div className="source-row"><span>CourtListener</span></div>
                     <div className="authority-actions">
-                      <Button size="sm" onClick={() => openDialog('opinion-reader', { opinionId: result.id, caseName: result.caseName, citation: result.citation, court: result.court, year: result.year })}>Read opinion</Button>
+                      <Button size="sm" onClick={() => openDialog('opinion-reader', { opinionId: result.id, caseName: result.caseName, citation: result.citation, court: result.court, year: result.year, caseId, docId: doc?.id, url: result.url, snippet: result.snippet, docketNumber: result.docketNumber })}>Read opinion</Button>
                       <Button size="sm" variant="ghost" busy={savingId === result.id} disabled={savingId !== null} onClick={() => void saveOpinion(result)}>Save to case</Button>
                     </div>
                   </div>

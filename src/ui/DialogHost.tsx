@@ -6,7 +6,7 @@ import { navigateTo } from './router'
 import { useEditorSelection } from './editorSelection'
 import { addDays, deadlinePhrase, downloadBlob, formatDate, formatShortDate, safeFilename, todayIso } from '../core/util'
 import { computeDeadlineDate, deadlineDate, rulesForTrigger } from '../core/deadlines'
-import { citeDisplay, docCitationUses, scanDocument, citationText } from '../core/citations'
+import { citeDisplay, docCitationUses, scanDocument, citationText, makeCiteToken } from '../core/citations'
 import { insertionToken } from './dialogUtils'
 import { getPdfSummary, stampExhibit } from './dialogUtils'
 import { runPreflight } from '../core/preflight'
@@ -330,7 +330,8 @@ function SaveAuthorityDialog({ payload, close }: { payload: Record<string, unkno
 }
 
 function OpinionReaderDialog({ payload, close }: { payload: Record<string, unknown>; close: () => void }) {
-  const { data } = useWorkspace()
+  const { data, createAuthority, saveAuthorityToCase, createCitation, updateDocument } = useWorkspace()
+  const { toast } = useUi()
   const service = data.settings.approvedServices.find(s => s.id === 'svc_courtlistener')
   const opinionId = S(payload.opinionId)
   const caseName = S(payload.caseName, 'Opinion')
@@ -338,9 +339,17 @@ function OpinionReaderDialog({ payload, close }: { payload: Record<string, unkno
   const court = S(payload.court)
   const year = S(payload.year)
   const storedText = S(payload.text)
+  const caseId = S(payload.caseId)
+  const storedAuthorityId = S(payload.authorityId)
+  const url = S(payload.url)
+  const snippet = S(payload.snippet)
+  const doc = data.documents.find(d => d.id === S(payload.docId) && !d.deletedAt)
   const [text, setText] = useState(storedText)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passage, setPassage] = useState('')
+  const [pinpoint, setPinpoint] = useState('')
+  const bodyRef = useRef<HTMLDivElement | null>(null)
   const load = async () => {
     if (!opinionId) return
     setBusy(true)
@@ -363,6 +372,61 @@ function OpinionReaderDialog({ payload, close }: { payload: Record<string, unkno
     paragraph.length < 120 &&
     ((paragraph === paragraph.toUpperCase() && /[A-Z]/.test(paragraph)) ||
       /^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s/.test(paragraph))
+  const capturePassage = () => {
+    const container = bodyRef.current
+    const selected = window.getSelection()
+    if (!container || !selected || selected.rangeCount === 0 || selected.isCollapsed) {
+      setPassage('')
+      return
+    }
+    const range = selected.getRangeAt(0)
+    if (!container.contains(range.commonAncestorContainer)) {
+      setPassage('')
+      return
+    }
+    const value = selected.toString().replace(/\s+/g, ' ').trim()
+    setPassage(value)
+    if (!value) return
+    const start = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement
+    const block = start?.closest('p, h3')
+    const marker = block?.textContent?.match(/¶\s*\d+(?:\.\d+)?/)
+    if (marker) setPinpoint(marker[0].replace(/\s+/g, ' '))
+  }
+  const citePassage = () => {
+    if (!doc || !caseId || !passage.trim()) return
+    if (!doc.blocks.some(block => block.type === 'paragraph')) {
+      toast('This draft has no body paragraph to cite into.', { tone: 'danger' })
+      return
+    }
+    const pin = pinpoint.trim()
+    let authorityId = storedAuthorityId && data.authorities.some(a => a.id === storedAuthorityId) ? storedAuthorityId : ''
+    if (!authorityId && url) authorityId = data.authorities.find(a => a.url && a.url === url)?.id || ''
+    if (!authorityId) {
+      authorityId = createAuthority({
+        caseName,
+        court,
+        reporter: citation || S(payload.docketNumber),
+        year: Number(year) || 0,
+        source: 'CourtListener',
+        summary: snippet,
+        text,
+        url,
+      })
+    }
+    saveAuthorityToCase(caseId, authorityId, '')
+    let citationId = data.citations.find(c => c.caseId === caseId && c.authorityId === authorityId && c.pinpoint === pin)?.id
+    if (!citationId) citationId = createCitation(caseId, authorityId, pin)
+    const token = makeCiteToken(citationId, pin)
+    const result = insertionToken(doc.blocks, undefined, token, '')
+    if (!result.blockId) {
+      toast('This draft has no body paragraph to cite into.', { tone: 'danger' })
+      return
+    }
+    updateDocument(doc.id, { blocks: result.blocks })
+    close()
+    navigateTo({ view: 'case', caseId, section: 'documents', docId: doc.id })
+    toast(pin ? `Citation inserted at the end of ${doc.title}, pinpoint ${pin}. It is Unverified until you check it.` : `Citation inserted at the end of ${doc.title}. It is Unverified until you check it.`, { tone: 'info' })
+  }
   return (
     <Dialog
       title={caseName}
@@ -375,7 +439,21 @@ function OpinionReaderDialog({ payload, close }: { payload: Record<string, unkno
       {busy ? <div className="tiny">Loading the opinion text…</div> : null}
       {error ? <div className="session-warning">{error}<div style={{ marginTop: 8 }}><Button size="sm" onClick={() => void load()}>Try again</Button></div></div> : null}
       {!text && !busy && !error ? <div className="tiny">No opinion text is available for this authority. Search for it again to read the full text.</div> : null}
-      {paragraphs.length ? <div className="opinion-reader">{paragraphs.map((paragraph, index) => isHeading(paragraph) ? <h3 key={index}>{paragraph}</h3> : <p key={index}>{paragraph}</p>)}</div> : null}
+      {doc && caseId && paragraphs.length ? (
+        <div className="reader-cite-bar">
+          {passage ? (
+            <>
+              <div className="reader-cite-passage">“{passage.length > 180 ? `${passage.slice(0, 180)}…` : passage}”</div>
+              <div className="reader-cite-controls">
+                <TextInput value={pinpoint} onChange={e => setPinpoint(e.target.value)} placeholder="Pinpoint (page or ¶)" aria-label="Pinpoint for the selected passage" />
+                <Button size="sm" variant="primary" onClick={citePassage}>Cite this passage</Button>
+              </div>
+              <div className="field-hint">Adds the citation with this pinpoint to the end of {doc.title}.</div>
+            </>
+          ) : <div className="field-hint">Select a passage in the opinion to cite it in {doc.title}.</div>}
+        </div>
+      ) : null}
+      {paragraphs.length ? <div className="opinion-reader" ref={bodyRef} onMouseUp={capturePassage} onKeyUp={capturePassage}>{paragraphs.map((paragraph, index) => isHeading(paragraph) ? <h3 key={index}>{paragraph}</h3> : <p key={index}>{paragraph}</p>)}</div> : null}
     </Dialog>
   )
 }

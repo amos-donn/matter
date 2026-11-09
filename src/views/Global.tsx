@@ -304,7 +304,7 @@ export function LibraryView() {
             <div className="source-row"><span>{auth.provenance}</span>{auth.cites.length ? <span>· Cites {auth.cites.length} in index</span> : null}</div>
             <div className="authority-actions">
               <Button size="sm" onClick={() => openDialog('save-authority', { authorityId: auth.id })}>Save to case</Button>
-              {auth.text ? <Button size="sm" variant="ghost" onClick={() => openDialog('opinion-reader', { caseName: auth.caseName, citation: auth.reporter, court: auth.court, year: auth.year, text: auth.text })}>Read opinion</Button> : null}
+              {auth.text ? <Button size="sm" variant="ghost" onClick={() => openDialog('opinion-reader', { caseName: auth.caseName, citation: auth.reporter, court: auth.court, year: auth.year, text: auth.text, authorityId: auth.id, url: auth.url, snippet: auth.summary })}>Read opinion</Button> : null}
             </div>
           </div>
         )) : <EmptyState icon="book" title="No authority matches" body="Add an authority manually, or populate the Vermont index from published opinions once the source terms are confirmed (OQ-5)." />}
