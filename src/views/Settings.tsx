@@ -7,19 +7,15 @@ import { navigateTo } from '../ui/router'
 import type { AuditAction } from '../core/types'
 
 export function SettingsView() {
-  const { data, updateSettings, updateApprovedService, changePassphrase } = useWorkspace()
+  const { data, updateSettings, updateApprovedService } = useWorkspace()
   const { openDialog, toast } = useUi()
   const s = data.settings
   const [retention, setRetention] = useState(String(s.retentionDays))
-  const [lock, setLock] = useState(String(s.autoLockMinutes))
   const [holidays, setHolidays] = useState(s.courtHolidays.join('\n'))
   const [attorneys, setAttorneys] = useState(s.filingAttorneys.join('\n'))
   const [codes, setCodes] = useState(s.filingCodes.join('\n'))
   const [accounts, setAccounts] = useState(s.paymentAccounts.join('\n'))
   const [efile, setEfile] = useState(s.efileUrl)
-  const [oldPass, setOldPass] = useState('')
-  const [newPass, setNewPass] = useState('')
-  const [passError, setPassError] = useState<string | null>(null)
   const [serviceTokens, setServiceTokens] = useState<Record<string, string>>(
     Object.fromEntries(s.approvedServices.map(x => [x.id, x.token])),
   )
@@ -32,24 +28,12 @@ export function SettingsView() {
       <PageHeader title="Options" subtitle="Local settings. Nothing here is sent anywhere." actions={<Button onClick={() => openDialog('shortcuts')}>Keyboard shortcuts</Button>} />
       <div className="settings-grid">
         <section className="settings-section">
-          <div className="settings-section-head"><h2>Security</h2><p>Auto-lock, passphrase, and where the data lives.</p></div>
+          <div className="settings-section-head"><h2>Workspace</h2><p>Prototype mode, local data, and interface preferences.</p></div>
           <div className="settings-section-body">
+            <div className="session-warning">Prototype mode has no sign-in or passphrase. The workspace is stored in this browser profile. Do not enter real client information.</div>
             <div className="settings-row">
-              <div><h3>Auto-lock</h3><p>The workspace locks after this many minutes without activity. The default is 15.</p></div>
-              <div className="row"><TextInput type="number" min={1} max={240} value={lock} onChange={e => setLock(e.target.value)} style={{ width: 90 }} /><Button onClick={() => { updateSettings({ autoLockMinutes: Math.max(1, Number(lock) || 15) }); toast('Auto-lock updated.', { tone: 'success' }) }}>Save</Button></div>
-            </div>
-            <div className="settings-row">
-              <div><h3>Data folder</h3><p>Application data stays on this computer. In the Windows build this is the encrypted store location; the browser build uses this browser profile's encrypted local storage.</p></div>
+              <div><h3>Data folder</h3><p>This prototype keeps its local data in this browser profile. A desktop build will use the folder below.</p></div>
               <TextInput value={s.dataFolder} onChange={e => updateSettings({ dataFolder: e.target.value })} aria-label="Data folder" />
-            </div>
-            <div className="settings-row">
-              <div><h3>Change passphrase</h3><p>Re-encrypts the database and every stored file. A lost passphrase cannot be recovered.</p></div>
-              <div className="stack">
-                <TextInput type="password" placeholder="Current passphrase" value={oldPass} onChange={e => setOldPass(e.target.value)} />
-                <TextInput type="password" placeholder="New passphrase, 8+ characters" value={newPass} onChange={e => setNewPass(e.target.value)} />
-                {passError ? <div className="field-hint" style={{ color: 'var(--danger)' }}>{passError}</div> : null}
-                <Button onClick={async () => { setPassError(null); const err = await changePassphrase(oldPass, newPass); if (err) setPassError(err); else { setOldPass(''); setNewPass(''); toast('Passphrase changed and files re-encrypted.', { tone: 'success' }) } }}>Change passphrase</Button>
-              </div>
             </div>
             <div className="settings-row">
               <div><h3>Interface size and motion</h3><p>Large is for people who prefer larger text. Motion follows Windows unless you turn it off here.</p></div>
@@ -69,7 +53,7 @@ export function SettingsView() {
               <div className="row"><TextInput type="number" min={7} max={90} value={retention} onChange={e => setRetention(e.target.value)} style={{ width: 90 }} /><Button onClick={() => { updateSettings({ retentionDays: Number(retention) || 30 }); toast('Retention updated.', { tone: 'success' }) }}>Save</Button></div>
             </div>
             <div className="settings-row">
-              <div><h3>Backups</h3><p>Encrypted with the passphrase. Store a copy on an external drive and test a restore.</p></div>
+              <div><h3>Backups</h3><p>Each backup is encrypted with its own passphrase. Store a copy on an external drive and test a restore.</p></div>
               <div className="stack">
                 <div className="tiny">Last backup: {s.backups.lastBackupAt ? formatDateTime(s.backups.lastBackupAt) : 'Never'}</div>
                 <Button onClick={() => openDialog('backup')}>Create encrypted backup</Button>
@@ -99,7 +83,7 @@ export function SettingsView() {
                 <div className="field-hint" style={{ marginTop: 8 }}>{service.dataTerms}</div>
                 {service.id === 'svc_courtlistener' ? (
                   <div className="field-hint" style={{ marginTop: 6 }}>
-                    Free API token: <a href="https://www.courtlistener.com/profile/api-token/" target="_blank" rel="noreferrer">CourtListener profile</a>. Paste it below, save it, then approve the service.
+                    Free API token: <a href="https://www.courtlistener.com/profile/api-token/" target="_blank" rel="noreferrer">CourtListener profile</a>. Paste it below, save it, then approve the service. Research &gt; Search opinions uses this token.
                   </div>
                 ) : null}
                 {service.endpoint ? (

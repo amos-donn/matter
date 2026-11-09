@@ -8,7 +8,7 @@ import { NavPane } from './ui/shell/NavPane'
 import { StatusBar } from './ui/shell/StatusBar'
 import { DialogHost } from './ui/DialogHost'
 import { ToastHost } from './ui/ToastHost'
-import { LoadingScreen, SetupScreen, UnlockScreen } from './views/Session'
+import { LoadingScreen } from './views/Session'
 import { TodayView, CasesView, CalendarView, FilingQueueView, LibraryView, TrashView } from './views/Global'
 import { CaseView } from './views/CaseView'
 import { SettingsView, AuditLogView } from './views/Settings'
@@ -25,8 +25,6 @@ export default function App() {
   const { status, bootError } = useStore()
   if (status === 'loading') return <LoadingScreen />
   if (status === 'error') return <LoadingScreen error={bootError} />
-  if (status === 'setup') return <SetupScreen />
-  if (status === 'locked') return <UnlockScreen />
   return <Workspace />
 }
 
@@ -34,7 +32,7 @@ function Workspace() {
   const { route } = useRouter()
   const { openDialog, closeDialog, toast } = useUi()
   const { setSelection } = useEditorSelection()
-  const { data, lock, restoreTrash, updateSettings } = useWorkspace()
+  const { data, restoreTrash, updateSettings } = useWorkspace()
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [statusHidden, setStatusHidden] = useState(false)
   const [palette, setPalette] = useState(false)
@@ -111,12 +109,11 @@ function Workspace() {
       { label: 'Backup now', run: () => open('backup') },
       { label: 'Export as PDF', run: () => void exportCurrent('pdf') },
       { label: 'Export as Word', run: () => void exportCurrent('docx') },
-      { label: 'Lock workspace', run: () => void lock() },
       { label: 'Keyboard shortcuts', run: () => open('shortcuts') },
     ]
     if (matter) list.unshift(...SECTION_ORDER.map((section, index) => ({ label: `Go to ${section[0].toUpperCase()}${section.slice(1)}`, hint: `Ctrl+${index + 1}`, run: () => navigateTo({ view: 'case', caseId: matter.id, section }) })))
     return list
-  }, [matter, doc, newDocument, open, exportCurrent, toast, lock])
+  }, [matter, doc, newDocument, open, exportCurrent, toast])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -154,8 +151,6 @@ function Workspace() {
       { separator: true },
       { label: 'Backup Now', action: () => open('backup') },
       { label: 'Restore from Backup', action: () => open('backup', { restore: true }) },
-      { separator: true },
-      { label: 'Lock Workspace', action: () => void lock() },
     ] },
     { label: 'Edit', items: [
       { label: 'Undo', shortcut: 'Ctrl+Z', action: () => document.execCommand('undo') },

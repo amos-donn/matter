@@ -35,7 +35,7 @@ import type {
   TrashItem,
   TrashObjectType,
 } from './types'
-import { changePassphrase as rekeyVault, createBackup, persistVault, restoreBackup, unlockVault, createVault, saveFile, loadFile, removeFile, vaultExists } from './vault'
+import { changePassphrase as rekeyVault, createBackup, persistVault, restoreBackup, unlockVault, createVault, saveFile, loadFile, removeFile, vaultExists, type SessionPayload } from './vault'
 import { buildDeadlines, computeDeadlineDate, rulesForTrigger } from './deadlines'
 import { docCitationUses } from './citations'
 import { buildPacket, type PacketBuild } from '../export/packet'
@@ -45,6 +45,33 @@ import { RETENTION_MAX, RETENTION_MIN } from './constants'
 
 type AppStatus = 'loading' | 'setup' | 'locked' | 'unlocked' | 'error'
 type SaveState = 'saved' | 'saving' | 'error'
+
+// Prototype-only local key. This is not a login: it lets the existing encrypted
+// storage layer operate without asking for a passphrase while the product is a demo.
+const PROTOTYPE_PASSPHRASE = 'prototype-local-workspace-v1'
+const PROTOTYPE_USER = 'Attorney'
+const PROTOTYPE_FOLDER = 'This browser profile'
+
+let prototypeBoot: Promise<SessionPayload> | null = null
+
+function bootPrototype(): Promise<SessionPayload> {
+  if (!prototypeBoot) {
+    prototypeBoot = (async () => {
+      if (await vaultExists()) {
+        const result = await unlockVault(PROTOTYPE_PASSPHRASE)
+        if (!result.ok) {
+          throw new Error('This browser has a prototype workspace from an older build. Clear this app’s site data and reload to start fresh.')
+        }
+        return result
+      }
+      return createVault(PROTOTYPE_PASSPHRASE, PROTOTYPE_USER, PROTOTYPE_FOLDER)
+    })().catch(error => {
+      prototypeBoot = null
+      throw error
+    })
+  }
+  return prototypeBoot
+}
 
 interface AuditSpec {
   action: AuditAction
@@ -203,16 +230,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [data])
 
   useEffect(() => {
-    vaultExists()
-      .then(exists => setStatus(exists ? 'locked' : 'setup'))
+    let cancelled = false
+    bootPrototype()
+      .then(session => {
+        if (cancelled) return
+        keyRef.current = session.key
+        metaRef.current = session.meta
+        dataRef.current = session.data
+        setData(session.data)
+        setStatus('unlocked')
+        setLastSavedAt(session.meta.updatedAt)
+        setSaveState('saved')
+      })
       .catch(error => {
+        if (cancelled) return
         setBootError(
           error instanceof Error
             ? error.message
-            : 'The local vault could not be opened. Check that this browser allows local storage.',
+            : 'The prototype workspace could not be opened. Check that this browser allows local storage.',
         )
         setStatus('error')
       })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const saveSnapshot = useCallback(() => {
@@ -1525,32 +1566,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     swept.current = true
     void sweep()
   }, [status, sweep])
-
-  // Inactivity auto-lock.
-  const autoLockMinutes = data?.settings.autoLockMinutes
-  useEffect(() => {
-    if (status !== 'unlocked' || !autoLockMinutes) return
-    const minutes = Math.max(1, autoLockMinutes)
-    const bump = () => {
-      lastActivity.current = Date.now()
-    }
-    window.addEventListener('pointerdown', bump)
-    window.addEventListener('keydown', bump)
-    window.addEventListener('wheel', bump, { passive: true })
-    window.addEventListener('touchstart', bump, { passive: true })
-    const timer = window.setInterval(() => {
-      if (Date.now() - lastActivity.current >= minutes * 60_000) {
-        void lock()
-      }
-    }, 10_000)
-    return () => {
-      window.removeEventListener('pointerdown', bump)
-      window.removeEventListener('keydown', bump)
-      window.removeEventListener('wheel', bump)
-      window.removeEventListener('touchstart', bump)
-      window.clearInterval(timer)
-    }
-  }, [status, autoLockMinutes, lock])
 
   const value = useMemo<StoreValue>(
     () => ({

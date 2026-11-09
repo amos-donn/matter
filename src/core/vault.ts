@@ -53,7 +53,7 @@ export async function createVault(
     action: 'Create',
     objectType: 'Vault',
     objectName: 'Local workspace',
-    detail: 'Encrypted local store initialized',
+    detail: 'Prototype local store initialized',
   })
   await persistVault(key, meta, data)
   return { key, meta, data }

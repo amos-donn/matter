@@ -1,6 +1,7 @@
 import type { StoredFileMeta, VaultMeta } from './types'
 
-const DB_NAME = 'matter-workspace'
+// Separate store for the login-free prototype so legacy passphrase vaults are not overwritten.
+const DB_NAME = 'matter-workspace-prototype'
 const DB_VERSION = 1
 const VAULT_STORE = 'vault'
 const FILE_STORE = 'files'

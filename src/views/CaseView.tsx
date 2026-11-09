@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useWorkspace } from '../core/store'
 import { useUi } from '../ui/ui'
 import { navigateTo } from '../ui/router'
-import { Badge, Button, EmptyState, Icon, PageHeader, Status, Tabs, TextInput } from '../ui/kit'
+import { Badge, Button, EmptyState, Icon, PageHeader, Select, Status, Tabs, TextInput } from '../ui/kit'
+import { searchOpinions, type OpinionResult } from '../core/courtlistener'
 import { caseDeadlines, deadlineDate, deadlineState, nextDeadline } from '../core/deadlines'
 import { countExhibitReferences, citationAge, citeDisplay, scanDocument, tableOfAuthorities } from '../core/citations'
 import { daysFromToday, formatShortDate } from '../core/util'
@@ -136,13 +137,58 @@ function Documents({ caseId }: { caseId: string }) {
 }
 
 function Research({ caseId }: { caseId: string }) {
-  const { data, removeAuthorityFromCase, markCitation } = useWorkspace()
+  const { data, removeAuthorityFromCase, markCitation, createAuthority, saveAuthorityToCase } = useWorkspace()
   const { openDialog, toast } = useUi()
   const saved = data.caseAuthorities.filter(l => l.caseId === caseId)
   const citations = data.citations.filter(c => c.caseId === caseId)
   const [query, setQuery] = useState('')
   const results = data.authorities.filter(a => `${a.caseName} ${a.reporter} ${a.summary}`.toLowerCase().includes(query.toLowerCase())).slice(0, 12)
   const doc = caseDocs(data, caseId).find(d => d.blocks.some(b => b.type === 'paragraph')) || caseDocs(data, caseId)[0]
+  const courtListener = data.settings.approvedServices.find(s => s.id === 'svc_courtlistener')
+  const canSearch = Boolean(courtListener?.approved && courtListener.token)
+  const [opinionQuery, setOpinionQuery] = useState('')
+  const [courtFilter, setCourtFilter] = useState('vt')
+  const [opinions, setOpinions] = useState<OpinionResult[] | null>(null)
+  const [opinionCount, setOpinionCount] = useState(0)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const runOpinionSearch = async () => {
+    if (!courtListener || !opinionQuery.trim()) return
+    setSearching(true)
+    setSearchError(null)
+    try {
+      const response = await searchOpinions({
+        query: opinionQuery.trim(),
+        token: courtListener.token,
+        endpoint: courtListener.endpoint,
+        court: courtFilter || undefined,
+      })
+      setOpinions(response.results)
+      setOpinionCount(response.count)
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : 'The opinion search could not be completed.')
+    } finally {
+      setSearching(false)
+    }
+  }
+  const saveOpinion = (result: OpinionResult) => {
+    const existing = data.authorities.find(a => a.url && a.url === result.url)
+    const authorityId =
+      existing?.id ||
+      createAuthority({
+        caseName: result.caseName,
+        court: result.court,
+        reporter: result.citation || result.docketNumber,
+        year: result.year,
+        source: 'CourtListener',
+        summary: result.snippet,
+        text: '',
+        url: result.url,
+      })
+    const alreadySaved = data.caseAuthorities.some(l => l.caseId === caseId && l.authorityId === authorityId)
+    saveAuthorityToCase(caseId, authorityId, '')
+    toast(alreadySaved ? 'That authority is already saved to this case.' : 'Saved to this case.', { tone: alreadySaved ? 'info' : 'success' })
+  }
   return (
     <div className="research-grid">
       <div className="panel">
@@ -171,6 +217,39 @@ function Research({ caseId }: { caseId: string }) {
       </div>
       <div>
         <div className="panel">
+          <div className="panel-head"><div className="panel-title"><Icon name="book" /> Search opinions</div><span className="tiny">CourtListener · public REST API</span></div>
+          <div className="panel-body stack">
+            {canSearch ? (
+              <>
+                <div className="row">
+                  <div className="search-box" style={{ maxWidth: 'none', flex: 1 }}><Icon name="search" /><TextInput value={opinionQuery} onChange={e => setOpinionQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void runOpinionSearch() }} placeholder="Party name, reporter citation, or issue" aria-label="Search CourtListener opinions" /></div>
+                  <Button size="sm" variant="primary" busy={searching} disabled={!opinionQuery.trim()} onClick={() => void runOpinionSearch()}>Search</Button>
+                </div>
+                <div className="row-wrap">
+                  <Select value={courtFilter} onChange={e => setCourtFilter(e.target.value)} style={{ width: 230 }} aria-label="Court"><option value="vt">Vermont Supreme Court</option><option value="">All courts</option></Select>
+                  {opinions ? <span className="tiny">{opinionCount} result{opinionCount === 1 ? '' : 's'} · lookup aid, not a citator</span> : null}
+                </div>
+                {searchError ? <div className="session-warning">{searchError}</div> : null}
+                {opinions?.map(result => (
+                  <div className="authority-card" key={result.id}>
+                    <div className="authority-title">{result.caseName}</div>
+                    <div className="authority-cite">{[result.citation, result.court, result.year || null].filter(Boolean).join(' · ')}</div>
+                    {result.snippet ? <div className="authority-summary">{result.snippet}</div> : null}
+                    <div className="source-row"><span>CourtListener</span>{result.url ? <button className="linkish" onClick={() => window.open(result.url, '_blank', 'noopener')}>Open opinion</button> : null}</div>
+                    <div className="authority-actions"><Button size="sm" onClick={() => saveOpinion(result)}>Save to case</Button></div>
+                  </div>
+                ))}
+                {opinions && !opinions.length ? <div className="table-empty">No opinions match. Try a broader search or all courts.</div> : null}
+              </>
+            ) : (
+              <>
+                <div className="tiny">Search federal and state appellate opinions. A free CourtListener API token is required, and the service must be approved under Options &gt; Approved services.</div>
+                <div className="row-wrap"><Button size="sm" onClick={() => navigateTo({ view: 'settings' })}>Open Options</Button><Button size="sm" variant="ghost" onClick={() => window.open('https://www.courtlistener.com/profile/api-token/', '_blank', 'noopener')}>Get a free token</Button></div>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="panel">
           <div className="panel-head"><div className="panel-title"><Icon name="search" /> Search the library</div><Button size="sm" variant="ghost" onClick={() => navigateTo({ view: 'library' })}>Open Library</Button></div>
           <div style={{ padding: 12 }}><div className="search-box" style={{ maxWidth: 'none' }}><Icon name="search" /><TextInput value={query} onChange={e => setQuery(e.target.value)} placeholder="Case name, reporter, or subject" /></div></div>
           {results.map(auth => (
@@ -182,8 +261,7 @@ function Research({ caseId }: { caseId: string }) {
           ))}
           {!results.length ? <div className="table-empty">No authority matches.</div> : null}
           <div className="panel-body" style={{ borderTop: '1px solid var(--line)' }}>
-            <div className="tiny">Vermont opinions are not indexed yet (OQ-5). CourtListener is off until approved in Options &gt; Approved Services.</div>
-            <Button size="sm" variant="ghost" style={{ marginTop: 8 }} onClick={() => openDialog('deferred', { title: 'Search opinions', body: 'The Vermont opinion index is populated from published opinions once terms and format are confirmed (OQ-5). CourtListener search requires an approved service and API token under Options > Approved Services.' })}>Search opinions</Button>
+            <div className="tiny">The local library is a small sample index, not a citator. Saved authorities are shared across cases; notes stay with this case.</div>
           </div>
         </div>
         <div className="panel">

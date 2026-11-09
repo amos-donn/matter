@@ -781,7 +781,7 @@ function BackupDialog({ payload, close }: { payload: Record<string, unknown>; cl
     <Field label="Backup passphrase"><TextInput type="password" value={restorePass} onChange={e => setRestorePass(e.target.value)} /></Field>
   </Dialog>
   return <Dialog title="Create encrypted backup" onClose={close} footer={<><Button onClick={close}>Cancel</Button><Button variant="primary" busy={busy} disabled={passphrase.length < 8} onClick={async () => { setBusy(true); try { const blob = await backupNow(passphrase); downloadBlob(blob, `matter-backup-${todayIso()}.matter-backup`); close(); toast('Encrypted backup created. Store it somewhere safe.', { tone: 'success' }) } catch (err) { toast(err instanceof Error ? err.message : 'The backup could not be created.', { tone: 'danger' }) } finally { setBusy(false) } }}>Create backup</Button></>}>
-    <p>Back up the encrypted database and every stored document. The backup is encrypted with this passphrase, not the workspace passphrase, so it can be restored on another machine.</p>
+    <p>Back up the encrypted database and every stored document. The backup gets its own passphrase, separate from this browser's store, so it can be restored on another machine.</p>
     <Field label="Backup passphrase" hint="At least 8 characters. This cannot be recovered." required><TextInput type="password" value={passphrase} onChange={e => setPassphrase(e.target.value)} /></Field>
     <div className="session-warning">Store the backup away from this computer. Test a restore before relying on it.</div>
   </Dialog>
