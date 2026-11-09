@@ -1,20 +1,21 @@
-/* Design tokens. Screens read these; no hard-coded colours elsewhere. */
+/* Design tokens — warm plain surfaces, ink type, one clay accent. */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
-  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
-  --font-reading: Cambria, Georgia, 'Times New Roman', serif;
-  --font-page: Cambria, Georgia, 'Times New Roman', serif;
-  --font-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  --font-ui: 'Geist Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Source Serif 4 Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-reading: 'Source Serif 4 Variable', Cambria, Georgia, serif;
+  --font-page: Cambria, 'Times New Roman', serif;
+  --font-mono: 'Cascadia Mono', 'SFMono-Regular', Consolas, 'Courier New', monospace;
 
   --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-base: 13px;
-  --fs-md: 14px;
-  --fs-lg: 16px;
-  --fs-xl: 20px;
-  --fs-2xl: 24px;
+  --fs-sm: 12.5px;
+  --fs-base: 13.5px;
+  --fs-md: 15px;
+  --fs-lg: 19px;
+  --fs-xl: 30px;
+  --fs-2xl: 40px;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -25,105 +26,115 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  --radius-sm: 4px;
-  --radius: 8px;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
   --radius-pill: 999px;
 
-  --motion-fast: 150ms;
+  --motion-fast: 140ms;
   --motion-base: 220ms;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --bg: #f3f3f3;
-  --surface: #ffffff;
-  --surface-2: #fafafa;
-  --surface-3: #efefef;
-  --surface-hover: #f0f0f0;
-  --surface-selected: #e5f1fb;
-  --text: #1a1a1a;
-  --text-2: #5c5c5c;
-  --text-3: #767676;
-  --line: #e2e2e2;
-  --line-strong: #c9c9c9;
-  --accent: #0067c0;
-  --accent-hover: #005a9e;
-  --accent-pressed: #004e8c;
-  --accent-soft: #e5f1fb;
-  --on-accent: #ffffff;
-  --ok: #0f7b0f;
-  --ok-bg: #dff6dd;
-  --warn: #8a5300;
-  --warn-bg: #fff4ce;
-  --danger: #b3261e;
-  --danger-bg: #fde7e9;
-  --info: #005a9e;
-  --info-bg: #e5f1fb;
-  --outline: #5c5c5c;
-  --focus: #0067c0;
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 8%);
-  --shadow-2: 0 8px 24px rgb(0 0 0 / 14%), 0 1px 3px rgb(0 0 0 / 10%);
-  --shadow-dialog: 0 16px 40px rgb(0 0 0 / 18%);
-  --highlight: #fff3b0;
+  --bg: #f7f5f0;
+  --surface: #fffefa;
+  --surface-2: #f2efe7;
+  --surface-3: #e9e4da;
+  --surface-hover: rgba(30, 27, 22, 0.045);
+  --surface-selected: #ece7dd;
+  --text: #1d1b17;
+  --text-2: #5e584e;
+  --text-3: #7a7266;
+  --line: #e5dfd3;
+  --line-strong: #d4cbba;
+  --accent: #b4553a;
+  --accent-hover: #98442d;
+  --accent-pressed: #823a26;
+  --accent-soft: #f3e7e0;
+  --on-accent: #fffaf5;
+  --primary: #1f1d19;
+  --primary-hover: #34302a;
+  --on-primary: #fbf8f2;
+  --ok: #3c7054;
+  --ok-bg: #eaf1eb;
+  --warn: #85600e;
+  --warn-bg: #f6efdd;
+  --danger: #9e3f37;
+  --danger-bg: #f7e9e6;
+  --info: #3e627a;
+  --info-bg: #e9eff3;
+  --outline: #7a7266;
+  --focus: #b4553a;
+  --highlight: #f2e0ba;
   --page: #ffffff;
-  --page-text: #161616;
-  --scrim: rgb(0 0 0 / 32%);
+  --page-text: #171512;
+  --scrim: rgba(26, 23, 19, 0.42);
+  --shadow-1: 0 1px 2px rgba(30, 27, 22, 0.05);
+  --shadow-2: 0 12px 30px -14px rgba(30, 27, 22, 0.22), 0 2px 6px rgba(30, 27, 22, 0.05);
+  --shadow-dialog: 0 28px 70px -28px rgba(30, 27, 22, 0.32), 0 4px 12px rgba(30, 27, 22, 0.06);
 
-  --menu-h: 32px;
-  --ribbon-h: 88px;
-  --nav-w: 242px;
-  --side-w: 304px;
-  --status-h: 26px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1f1f1f;
-    --surface: #2b2b2b;
-    --surface-2: #252525;
-    --surface-3: #333333;
-    --surface-hover: #363636;
-    --surface-selected: #123a52;
-    --text: #f5f5f5;
-    --text-2: #c3c3c3;
-    --text-3: #9b9b9b;
-    --line: #3b3b3b;
-    --line-strong: #525252;
-    --accent: #4cc2ff;
-    --accent-hover: #6ccaff;
-    --accent-pressed: #2ab0ee;
-    --accent-soft: #143a4d;
-    --on-accent: #00243a;
-    --ok: #6ccb5f;
-    --ok-bg: #1f3a1e;
-    --warn: #fce100;
-    --warn-bg: #3a3310;
-    --danger: #ff99a4;
-    --danger-bg: #41161a;
-    --info: #7cc7ff;
-    --info-bg: #123a52;
-    --outline: #c3c3c3;
-    --focus: #4cc2ff;
-    --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
-    --shadow-2: 0 10px 28px rgb(0 0 0 / 50%);
-    --shadow-dialog: 0 18px 46px rgb(0 0 0 / 55%);
-    --highlight: #5a4a00;
-    --page: #fdfdfb;
-    --page-text: #161616;
-    --scrim: rgb(0 0 0 / 52%);
-  }
+  --menu-h: 46px;
+  --ribbon-h: 94px;
+  --nav-w: 244px;
+  --side-w: 312px;
+  --status-h: 30px;
 }
 
 :root[data-interface-size='large'] {
   --fs-xs: 12px;
-  --fs-sm: 13px;
+  --fs-sm: 13.5px;
   --fs-base: 15px;
   --fs-md: 16px;
-  --fs-lg: 18px;
-  --fs-xl: 22px;
-  --fs-2xl: 26px;
-  --nav-w: 268px;
-  --side-w: 332px;
-  --menu-h: 36px;
-  --ribbon-h: 94px;
+  --fs-lg: 20px;
+  --fs-xl: 32px;
+  --fs-2xl: 42px;
+  --nav-w: 260px;
+  --side-w: 336px;
+  --menu-h: 50px;
+  --ribbon-h: 100px;
+  --status-h: 32px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #111210;
+    --surface: #181916;
+    --surface-2: #141512;
+    --surface-3: #23241f;
+    --surface-hover: rgba(244, 239, 229, 0.055);
+    --surface-selected: #25251f;
+    --text: #f1eee6;
+    --text-2: #b0a99c;
+    --text-3: #8c8476;
+    --line: #292a25;
+    --line-strong: #3c3b33;
+    --accent: #e0a087;
+    --accent-hover: #eab39e;
+    --accent-pressed: #d18f75;
+    --accent-soft: #2f2521;
+    --on-accent: #23130d;
+    --primary: #f1eee6;
+    --primary-hover: #ffffff;
+    --on-primary: #171512;
+    --ok: #90c7a8;
+    --ok-bg: #1c2b23;
+    --warn: #dfbd7f;
+    --warn-bg: #2b261b;
+    --danger: #e7a19b;
+    --danger-bg: #2e2020;
+    --info: #a0bed4;
+    --info-bg: #1e2830;
+    --outline: #8c8476;
+    --focus: #e0a087;
+    --highlight: rgba(224, 160, 135, 0.24);
+    --page: #fbfaf7;
+    --page-text: #171512;
+    --scrim: rgba(0, 0, 0, 0.64);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.32);
+    --shadow-2: 0 14px 34px -16px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-dialog: 0 30px 80px -30px rgba(0, 0, 0, 0.8), 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -133,7 +144,7 @@
   }
 }
 
-:root[data-motion='off'] {
+:root[data-motion='reduced'] {
   --motion-fast: 1ms;
   --motion-base: 1ms;
 }
@@ -145,5 +156,6 @@
     --focus: Highlight;
     --line: CanvasText;
     --line-strong: CanvasText;
+    --surface-selected: Highlight;
   }
 }

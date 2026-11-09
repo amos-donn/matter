@@ -47,7 +47,7 @@ export const FILING_CODE_SUGGESTIONS = [
   'Other',
 ]
 
-export const DEFAULT_EFILE_URL = 'https://efile.vermontjudiciary.org/'
+export const DEFAULT_EFILE_URL = 'https://efilevt.tylertech.cloud/OfsEfsp/ui/landing'
 
 export const RULE_CONFIRMATION_NOTE =
   'Seed rule shipped with the app. Confirm the period and the rule reference against the current Vermont Rules of Appellate Procedure before relying on it. Edit the rule here if it differs.'

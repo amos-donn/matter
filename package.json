@@ -11,6 +11,8 @@
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false --pretty false"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.1",
     "docx": "^9.5.1",
     "fflate": "^0.8.2",
     "pdf-lib": "^1.17.1",

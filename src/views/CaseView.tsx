@@ -39,12 +39,12 @@ export function CaseView({ route }: { route: import('../core/types').Route }) {
         <div className="spread" style={{ alignItems: 'flex-start' }}>
           <div><div className="page-title-row"><h1>{matter.caption}</h1><Status state={matter.status} /></div><div className="case-hero-meta"><span>{matter.court}</span><span>No. {matter.number || '—'}</span><span>Role: {matter.role}</span>{matter.clientId ? <span>Client ID {matter.clientId}</span> : null}{matter.judge ? <span>Judge {matter.judge}</span> : null}</div></div>
           <div className="row-wrap">
-            <Button onClick={() => openDialog('edit-case', { caseId: matter.id })}>Edit case</Button>
             <Button variant="primary" icon="add" onClick={() => openDialog('new-document', { caseId: matter.id })}>New document</Button>
           </div>
         </div>
         <div className="case-hero-actions">
           <span className={`case-deadline ${next?.override ? '' : next && deadlineState(next) === 'Overdue' ? 'overdue' : next && deadlineState(next) === 'Due Soon' ? 'due' : ''}`}><Icon name="clock" size={14} />{next ? `${next.title} · ${formatShortDate(deadlineDate(next))} · ${daysFromToday(deadlineDate(next)) >= 0 ? `in ${daysFromToday(deadlineDate(next))} days` : 'overdue'}` : 'No upcoming deadline'}</span>
+          <Button size="sm" variant="ghost" onClick={() => openDialog('edit-case', { caseId: matter.id })}>Edit case</Button>
           <Button size="sm" variant="ghost" onClick={() => openDialog('trigger-event', { caseId: matter.id })}>Trigger event</Button>
           <Button size="sm" variant="ghost" onClick={() => openDialog('new-filing', { caseId: matter.id })}>New filing</Button>
           <Button size="sm" variant="ghost" onClick={() => openDialog('delete-confirm', { objectType: 'Case', objectId: matter.id })}>Delete case</Button>

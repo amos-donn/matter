@@ -97,6 +97,11 @@ export function SettingsView() {
               <div className="service-card" key={service.id}>
                 <div className="service-head"><div><strong>{service.name}</strong><div className="tiny">{service.purpose}</div></div><Badge tone={service.approved ? 'success' : 'neutral'}>{service.approved ? 'Approved' : 'Not approved'}</Badge></div>
                 <div className="field-hint" style={{ marginTop: 8 }}>{service.dataTerms}</div>
+                {service.id === 'svc_courtlistener' ? (
+                  <div className="field-hint" style={{ marginTop: 6 }}>
+                    Free API token: <a href="https://www.courtlistener.com/profile/api-token/" target="_blank" rel="noreferrer">CourtListener profile</a>. Paste it below, save it, then approve the service.
+                  </div>
+                ) : null}
                 {service.endpoint ? (
                   <div className="row" style={{ marginTop: 8 }}>
                     <TextInput type="password" placeholder="API token (stored encrypted)" value={serviceTokens[service.id] ?? ''} onChange={e => setServiceTokens(prev => ({ ...prev, [service.id]: e.target.value }))} />

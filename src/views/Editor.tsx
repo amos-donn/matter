@@ -3,18 +3,19 @@ import { useWorkspace } from '../core/store'
 import { useUi } from '../ui/ui'
 import { useEditorSelection } from '../ui/editorSelection'
 import { Badge, Button, Icon, Status, Tabs } from '../ui/kit'
+import { Ribbon } from '../ui/shell/Ribbon'
 import { navigateTo } from '../ui/router'
 import { blockHtml, serializeEditor } from '../ui/editorUtils'
-import { scanDocument, citeDisplay, docCitationUses, tableOfAuthorities } from '../core/citations'
+import { scanDocument, citeDisplay, docCitationUses, renderText, tableOfAuthorities } from '../core/citations'
 import { caseDeadlines, deadlineDate, deadlineState, nextDeadline } from '../core/deadlines'
-import { daysFromToday, downloadBlob, formatShortDate, safeFilename, uid } from '../core/util'
+import { daysFromToday, downloadBlob, formatShortDate, safeFilename, uid, wordCount } from '../core/util'
 import { buildDocumentPdf } from '../export/pdf'
 import { buildDocumentDocx } from '../export/docx'
 import { caseDocs, caseLinks, fullAddress } from '../ui/helpers'
 import type { DocBlock } from '../core/types'
 
 export function Editor({ docId }: { docId: string }) {
-  const { data, updateDocument, saveDocumentVersion, update, readFileBytes } = useWorkspace()
+  const { data, updateDocument, saveDocumentVersion, update, updateSettings, readFileBytes } = useWorkspace()
   const { openDialog, toast } = useUi()
   const { selection, setSelection } = useEditorSelection()
   const doc = data.documents.find(d => d.id === docId && !d.deletedAt)
@@ -51,6 +52,17 @@ export function Editor({ docId }: { docId: string }) {
   const next = nextDeadline(data, matter.id)
   const issues = scanDocument(data, doc).findings
   const linked = caseLinks(data, matter.id)
+  const words = doc.blocks.reduce(
+    (total, block) =>
+      block.type === 'paragraph' || block.type === 'heading' || block.type === 'quote'
+        ? total + wordCount(renderText(data, block.text))
+        : total,
+    0,
+  )
+  const showSideTab = (tab: string) => {
+    setSideTab(tab)
+    setSideOpen(true)
+  }
 
   const setBlocks = (blocks: DocBlock[]) => updateDocument(doc.id, { blocks })
   const replaceBlock = (id: string, text: string) => setBlocks(doc.blocks.map(b => (b.id === id ? { ...b, text } : b)))
@@ -77,7 +89,7 @@ export function Editor({ docId }: { docId: string }) {
   }
   const capture = (event: React.SyntheticEvent) => {
     const sel = window.getSelection()
-    if (!sel || sel.rangeCount === 0 || !sel.toString().trim()) {
+    if (!sel || sel.rangeCount === 0) {
       setSelection(null)
       setSelectionToolbar(null)
       return
@@ -85,9 +97,14 @@ export function Editor({ docId }: { docId: string }) {
     let node: Node | null = sel.anchorNode
     while (node && !(node instanceof HTMLElement && node.dataset.blockId)) node = node.parentNode
     if (!(node instanceof HTMLElement)) return
-    setSelection({ docId: doc.id, blockId: node.dataset.blockId!, text: sel.toString() })
-    const rect = sel.getRangeAt(0).getBoundingClientRect()
-    setSelectionToolbar({ top: Math.max(80, rect.top - 8), left: rect.left + rect.width / 2 })
+    const text = sel.toString()
+    setSelection({ docId: doc.id, blockId: node.dataset.blockId!, text })
+    if (text.trim()) {
+      const rect = sel.getRangeAt(0).getBoundingClientRect()
+      setSelectionToolbar({ top: Math.max(80, rect.top - 8), left: rect.left + rect.width / 2 })
+    } else {
+      setSelectionToolbar(null)
+    }
     ;(event.currentTarget as HTMLElement).dataset.lastBlock = node.dataset.blockId
   }
 
@@ -109,7 +126,7 @@ export function Editor({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="editor-shell" onKeyDown={e => {
+    <div className="editor-shell" onClick={event => event.stopPropagation()} onKeyDown={e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveDocumentVersion(doc.id, 'Manual save'); toast('Version saved.', { tone: 'success' }) }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); openDialog('find-replace', { docId: doc.id }) }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') { e.preventDefault(); openDialog('find-replace', { docId: doc.id, replace: true }) }
@@ -127,8 +144,18 @@ export function Editor({ docId }: { docId: string }) {
         <Button size="sm" onClick={() => void exportWord()}>Export Word</Button>
         <Button size="sm" variant="primary" onClick={() => void exportPdf()}>Export PDF</Button>
       </div>
+      <Ribbon
+        docId={doc.id}
+        sideOpen={sideOpen}
+        onSidePanel={() => setSideOpen(value => !value)}
+        onSideTab={showSideTab}
+        zoom={zoom}
+        onZoom={setZoom}
+        showCitationMarks={data.settings.showCitationMarks}
+        onCitationMarks={() => updateSettings({ showCitationMarks: !data.settings.showCitationMarks })}
+      />
       <div className="editor-body">
-        <div className="editor-canvas-wrap" onMouseUp={capture} onKeyUp={capture}>
+        <div className="editor-canvas-wrap" onMouseUp={capture} onKeyUp={capture} onFocus={capture}>
           {selectionToolbar ? (
             <div className="selection-toolbar no-print" style={{ top: selectionToolbar.top, left: selectionToolbar.left }}>
               <button onClick={() => { openDialog('cite', { docId: doc.id, caseId: doc.caseId }); setSelectionToolbar(null) }}>Cite</button>
@@ -137,7 +164,10 @@ export function Editor({ docId }: { docId: string }) {
             </div>
           ) : null}
           <div className="editor-canvas">
-            <article className="page-sheet" style={{ fontSize: `${13.5 * (zoom / 100)}px` }}>
+            <div className="editor-ruler no-print" aria-hidden="true">
+              {Array.from({ length: 7 }, (_, index) => <span key={index}>{index + 1}</span>)}
+            </div>
+            <article className={`page-sheet ${data.settings.showCitationMarks ? '' : 'hide-cite-marks'}`} style={{ fontSize: `${13.5 * (zoom / 100)}px` }}>
               {doc.blocks.map((block, index) => {
                 if (block.type === 'caption') {
                   const parts = matter.caption.match(/^(.*?)\s+v\.?\s+(.*)$/i)
@@ -193,7 +223,7 @@ export function Editor({ docId }: { docId: string }) {
                 <span className="tiny">{zoom}%</span>
                 <Button size="sm" variant="ghost" onClick={() => setZoom(z => Math.min(160, z + 10))}>+</Button>
               </div>
-              <div className="editor-footer-note">{matter.court} · {matter.number || 'No case number'} · {doc.title} · Saved automatically</div>
+              <div className="editor-footer-note">{matter.court} · {matter.number || 'No case number'} · {doc.title} · {words.toLocaleString()} words · Saved automatically</div>
             </article>
           </div>
         </div>

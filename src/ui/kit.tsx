@@ -17,6 +17,7 @@ export type IconName =
   | 'add'
   | 'close'
   | 'search'
+  | 'command'
   | 'check'
   | 'warning'
   | 'flag'
@@ -24,6 +25,13 @@ export type IconName =
   | 'file'
   | 'trash'
   | 'download'
+  | 'save'
+  | 'cut'
+  | 'copy'
+  | 'paste'
+  | 'undo'
+  | 'redo'
+  | 'text'
   | 'print'
   | 'external'
   | 'chevron-down'
@@ -56,6 +64,12 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M10.2 10.2L14 14" />
     </>
   ),
+  command: (
+    <>
+      <rect x="2" y="3.5" width="12" height="9" rx="1.5" />
+      <path d="M4.5 6.5h.1M7 6.5h.1M9.5 6.5h.1M12 6.5h.1M4.5 9.5h7" />
+    </>
+  ),
   check: <path d="M2.8 8.4l3.4 3.4L13.2 4.6" />,
   warning: (
     <>
@@ -82,6 +96,42 @@ const paths: Record<IconName, ReactNode> = {
     </>
   ),
   download: <path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M3 13h10" />,
+  save: (
+    <>
+      <path d="M2.5 2.5h9l2 2v9h-11z" />
+      <path d="M5 2.5v4h5v-4M5 13.5v-4h6v4" />
+    </>
+  ),
+  cut: (
+    <>
+      <circle cx="4" cy="4.5" r="1.7" />
+      <circle cx="4" cy="11.5" r="1.7" />
+      <path d="M5.4 5.6L13 12M5.4 10.4L13 4" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1" />
+      <path d="M3.5 10.5H2.5v-8h8v1" />
+    </>
+  ),
+  paste: (
+    <>
+      <path d="M5 3H3.5v11h9V3H11" />
+      <rect x="5.5" y="1.8" width="5" height="3" rx="1" />
+    </>
+  ),
+  undo: (
+    <>
+      <path d="M5.5 3.5L2.5 6.5l3 3M2.5 6.5h6a4 4 0 010 8H6" />
+    </>
+  ),
+  redo: (
+    <>
+      <path d="M10.5 3.5l3 3-3 3M13.5 6.5h-6a4 4 0 000 8H10" />
+    </>
+  ),
+  text: <path d="M3 3.5h10M8 3.5v9M5.5 12.5h5" />,
   print: (
     <>
       <path d="M4.5 6V2h7v4M4.5 12H3V6.5h10V12h-1.5M4.5 10.5h7V14h-7z" />

@@ -39,9 +39,10 @@ export function SetupScreen() {
     <div className="session">
       <div className="session-brand">
         <div>
-          <div className="brand-mark"><Icon name="shield" size={18} /> Legal Matter Workspace</div>
+          <div className="brand-mark"><span className="brand-orb"><Icon name="shield" size={14} /></span> Legal Matter Workspace</div>
           <div className="session-lead" style={{ marginTop: 48 }}>
-            <h1>One case. One place.</h1>
+            <div className="session-eyebrow">Local-first · Encrypted · Vermont appellate</div>
+            <h1>One case.<br />One quiet place.</h1>
             <p>
               Drafts, research, exhibits, deadlines, and filings stay together in a single local workspace.
               Nothing leaves this computer without your approval.
@@ -124,8 +125,9 @@ export function UnlockScreen() {
     <div className="session">
       <div className="session-brand">
         <div>
-          <div className="brand-mark"><Icon name="shield" size={18} /> Legal Matter Workspace</div>
+          <div className="brand-mark"><span className="brand-orb"><Icon name="shield" size={14} /></span> Legal Matter Workspace</div>
           <div className="session-lead" style={{ marginTop: 48 }}>
+            <div className="session-eyebrow">Encrypted local workspace</div>
             <h1>Welcome back.</h1>
             <p>The workspace is locked on this computer. Your passphrase unlocks the encrypted store locally. No server is contacted.</p>
           </div>

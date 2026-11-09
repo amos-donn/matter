@@ -50,6 +50,12 @@ function Workspace() {
   }, [data.settings.interfaceScale, data.settings.animations])
 
   useEffect(() => {
+    const toggleNav = () => setNavCollapsed(value => !value)
+    window.addEventListener('lmt:toggle-nav', toggleNav)
+    return () => window.removeEventListener('lmt:toggle-nav', toggleNav)
+  }, [])
+
+  useEffect(() => {
     const open = (event: Event) => {
       const detail = (event as CustomEvent<{ kind: DialogKind; payload?: Record<string, unknown> }>).detail
       if (detail?.kind) openDialog(detail.kind, detail.payload || {})
@@ -238,7 +244,7 @@ function Workspace() {
 
   return (
     <div className="app-shell">
-      <MenuBar menus={menus} />
+      <MenuBar menus={menus} onSearch={() => setSearch(true)} onCommand={() => setPalette(true)} />
       <div className="workspace">
         <NavPane route={route as Route} collapsed={navCollapsed} onOpenDialog={kind => open(kind)} />
         <main className="main-pane" onClick={() => setSelection(null)}>
