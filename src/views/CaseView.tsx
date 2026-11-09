@@ -3,7 +3,7 @@ import { useWorkspace } from '../core/store'
 import { useUi } from '../ui/ui'
 import { navigateTo } from '../ui/router'
 import { Badge, Button, EmptyState, Icon, PageHeader, Select, Status, Tabs, TextInput } from '../ui/kit'
-import { searchOpinions, type OpinionResult } from '../core/courtlistener'
+import { fetchOpinionText, searchOpinions, type OpinionResult } from '../core/courtlistener'
 import { caseDeadlines, deadlineDate, deadlineState, nextDeadline } from '../core/deadlines'
 import { countExhibitReferences, citationAge, citeDisplay, scanDocument, tableOfAuthorities } from '../core/citations'
 import { daysFromToday, formatShortDate } from '../core/util'
@@ -171,23 +171,37 @@ function Research({ caseId }: { caseId: string }) {
       setSearching(false)
     }
   }
-  const saveOpinion = (result: OpinionResult) => {
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const saveOpinion = async (result: OpinionResult) => {
+    if (savingId) return
     const existing = data.authorities.find(a => a.url && a.url === result.url)
-    const authorityId =
-      existing?.id ||
-      createAuthority({
-        caseName: result.caseName,
-        court: result.court,
-        reporter: result.citation || result.docketNumber,
-        year: result.year,
-        source: 'CourtListener',
-        summary: result.snippet,
-        text: '',
-        url: result.url,
-      })
-    const alreadySaved = data.caseAuthorities.some(l => l.caseId === caseId && l.authorityId === authorityId)
+    if (existing) {
+      saveAuthorityToCase(caseId, existing.id, '')
+      toast('That authority is already saved to this case.', { tone: 'info' })
+      return
+    }
+    setSavingId(result.id)
+    let text = ''
+    if (courtListener?.token) {
+      try {
+        text = await fetchOpinionText({ opinionId: result.id, token: courtListener.token, endpoint: courtListener.endpoint })
+      } catch {
+        // Metadata is still worth saving; the reader can fetch the text again.
+      }
+    }
+    const authorityId = createAuthority({
+      caseName: result.caseName,
+      court: result.court,
+      reporter: result.citation || result.docketNumber,
+      year: result.year,
+      source: 'CourtListener',
+      summary: result.snippet,
+      text,
+      url: result.url,
+    })
     saveAuthorityToCase(caseId, authorityId, '')
-    toast(alreadySaved ? 'That authority is already saved to this case.' : 'Saved to this case.', { tone: alreadySaved ? 'info' : 'success' })
+    setSavingId(null)
+    toast(text ? 'Saved to this case with the full opinion text.' : 'Saved to this case.', { tone: 'success' })
   }
   return (
     <div className="research-grid">
@@ -202,7 +216,7 @@ function Research({ caseId }: { caseId: string }) {
             <div className="authority-card" key={link.id}>
               <div className="spread"><div><div className="authority-title">{auth.caseName}</div><div className="authority-cite">{auth.reporter} ({auth.year}) · {auth.court}</div></div>{cite ? <Status state={cite.status} /> : <Badge tone="outline">No citation link</Badge>}</div>
               <div className="authority-summary">{auth.summary}</div>
-              <div className="source-row"><span>{auth.provenance}</span>{auth.url ? <button className="linkish" onClick={() => window.open(auth.url, '_blank', 'noopener')}>Open source</button> : null}</div>
+              <div className="source-row"><span>{auth.provenance}</span>{auth.text ? <button className="linkish" onClick={() => openDialog('opinion-reader', { caseName: auth.caseName, citation: auth.reporter, court: auth.court, year: auth.year, text: auth.text })}>Read opinion</button> : null}</div>
               {link.note ? <div className="authority-note">{link.note}</div> : null}
               {citing.length ? <div className="citing-refs"><div className="tiny">Citing references in the index (lookup aid, not treatment)</div>{citing.slice(0, 4).map(c => <div className="citing-ref" key={c.id}>{c.caseName}, {c.reporter}</div>)}</div> : null}
               <div className="authority-actions">
@@ -235,8 +249,11 @@ function Research({ caseId }: { caseId: string }) {
                     <div className="authority-title">{result.caseName}</div>
                     <div className="authority-cite">{[result.citation, result.court, result.year || null].filter(Boolean).join(' · ')}</div>
                     {result.snippet ? <div className="authority-summary">{result.snippet}</div> : null}
-                    <div className="source-row"><span>CourtListener</span>{result.url ? <button className="linkish" onClick={() => window.open(result.url, '_blank', 'noopener')}>Open opinion</button> : null}</div>
-                    <div className="authority-actions"><Button size="sm" onClick={() => saveOpinion(result)}>Save to case</Button></div>
+                    <div className="source-row"><span>CourtListener</span></div>
+                    <div className="authority-actions">
+                      <Button size="sm" onClick={() => openDialog('opinion-reader', { opinionId: result.id, caseName: result.caseName, citation: result.citation, court: result.court, year: result.year })}>Read opinion</Button>
+                      <Button size="sm" variant="ghost" busy={savingId === result.id} disabled={savingId !== null} onClick={() => void saveOpinion(result)}>Save to case</Button>
+                    </div>
                   </div>
                 ))}
                 {opinions && !opinions.length ? <div className="table-empty">No opinions match. Try a broader search or all courts.</div> : null}

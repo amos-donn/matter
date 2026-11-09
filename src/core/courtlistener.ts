@@ -132,3 +132,147 @@ export async function searchOpinions({
   const results = (body.results || []).map(toOpinionResult)
   return { results, count: body.count ?? results.length }
 }
+
+/* ------------------------------------------------------------------ */
+/* Full opinion text                                                   */
+/* ------------------------------------------------------------------ */
+
+interface RawOpinionText {
+  plain_text?: string
+  html_with_citations?: string
+  html?: string
+  html_lawbox?: string
+  html_columbia?: string
+  html_anon_2020?: string
+  xml_harvard?: string
+}
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  ndash: '–',
+  mdash: '—',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  hellip: '…',
+  sect: '§',
+  para: '¶',
+  copy: '©',
+  reg: '®',
+}
+
+function decodeEntities(value: string): string {
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
+    const named = NAMED_ENTITIES[entity.toLowerCase()]
+    if (named) return named
+    try {
+      if (/^#x/i.test(entity)) return String.fromCodePoint(parseInt(entity.slice(2), 16))
+      if (entity.startsWith('#')) return String.fromCodePoint(parseInt(entity.slice(1), 10))
+    } catch {
+      return match
+    }
+    return match
+  })
+}
+
+/** Convert CourtListener opinion HTML into block-separated plain text. */
+export function opinionHtmlToText(html: string): string {
+  const text = html
+    .replace(/<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*li[^>]*>/gi, '\n• ')
+    .replace(/<\/\s*(p|div|section|article|h[1-6]|li|tr|blockquote|pre|table|ul|ol|dl|dt|dd)\s*>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+  return decodeEntities(text)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/** Split opinion text into paragraphs for the in-app reader. */
+export function opinionParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.replace(/\s+\n/g, '\n').trim())
+    .filter(Boolean)
+}
+
+function opinionDetailUrl(opinionId: string, endpoint?: string): string {
+  const id = encodeURIComponent(opinionId)
+  const configured = endpoint?.trim()
+  if (configured) {
+    try {
+      const root = configured.replace(/search\/?$/i, '').replace(/\/?$/, '/')
+      return new URL(`opinions/${id}/`, root).toString()
+    } catch {
+      /* fall through to the public endpoint */
+    }
+  }
+  return `https://www.courtlistener.com/api/rest/v4/opinions/${id}/`
+}
+
+/** Fetch the full text of an opinion. The reader renders this inside the app. */
+export async function fetchOpinionText({
+  opinionId,
+  token,
+  endpoint,
+  signal,
+}: {
+  opinionId: string
+  token: string
+  endpoint?: string
+  signal?: AbortSignal
+}): Promise<string> {
+  if (!opinionId.trim()) throw new Error('The opinion identifier is missing.')
+  if (!token.trim()) throw new Error('Add a CourtListener API token under Options > Approved services.')
+
+  const url = new URL(opinionDetailUrl(opinionId.trim(), endpoint))
+  url.searchParams.set('fields', 'id,plain_text,html_with_citations,html,html_lawbox,html_columbia,xml_harvard')
+
+  let response: Response
+  try {
+    response = await fetch(url.toString(), {
+      headers: { Accept: 'application/json', Authorization: `Token ${token.trim()}` },
+      signal,
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    throw new Error('CourtListener could not be reached. Check the connection and try again.')
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('CourtListener rejected the token. Check the token under Options > Approved services.')
+  }
+  if (response.status === 404) {
+    throw new Error('CourtListener has no full text stored for this opinion.')
+  }
+  if (response.status === 429) {
+    throw new Error('CourtListener rate limit reached. Wait a moment and try again.')
+  }
+  if (!response.ok) throw new Error(`CourtListener returned ${response.status}. Try again.`)
+
+  const body = (await response.json()) as RawOpinionText
+  const fromHtmlWithCitations = opinionHtmlToText(body.html_with_citations || '')
+  const fromPlainText = (body.plain_text || '').trim()
+  const candidates = [
+    fromHtmlWithCitations.length >= fromPlainText.length ? fromHtmlWithCitations : fromPlainText,
+    fromPlainText,
+    opinionHtmlToText(body.html || ''),
+    opinionHtmlToText(body.html_lawbox || ''),
+    opinionHtmlToText(body.html_columbia || ''),
+    opinionHtmlToText(body.html_anon_2020 || ''),
+    opinionHtmlToText(body.xml_harvard || ''),
+  ].filter(candidate => candidate.length > 0)
+
+  const text = candidates[0] || ''
+  if (!text) throw new Error('CourtListener has no readable text stored for this opinion.')
+  return text
+}

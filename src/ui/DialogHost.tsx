@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace } from '../core/store'
 import { useUi } from './ui'
 import { Button, Checkbox, Dialog, Field, Select, Status, TextArea, TextInput } from './kit'
@@ -13,6 +13,7 @@ import { runPreflight } from '../core/preflight'
 import { savePdfToExhibit, splitExhibit } from './dialogUtils'
 import { buildExhibitIndexPdf } from '../export/pdf'
 import { PageHeader } from './kit'
+import { fetchOpinionText, opinionParagraphs } from '../core/courtlistener'
 
 const S = (value: unknown, fallback = '') => (value === undefined || value === null ? fallback : String(value))
 const N = (value: unknown, fallback = 0) => Number(value) || fallback
@@ -36,6 +37,7 @@ export function DialogHost() {
     case 'citation-scan': return <ScanDialog {...props} />
     case 'new-authority': return <NewAuthorityDialog {...props} />
     case 'save-authority': return <SaveAuthorityDialog {...props} />
+    case 'opinion-reader': return <OpinionReaderDialog {...props} />
     case 'add-exhibit':
     case 'edit-exhibit': return <ExhibitDialog {...props} edit={kind === 'edit-exhibit'} />
     case 'exhibit-xref': return <XrefDialog {...props} />
@@ -325,6 +327,57 @@ function SaveAuthorityDialog({ payload, close }: { payload: Record<string, unkno
     <Field label="Note for this case" hint="Notes are kept per case. They do not appear in another client's case."><TextArea value={note} onChange={e => setNote(e.target.value)} /></Field>
     <div className="field-hint">{authority.reporter} ({authority.year}) · {authority.court}</div>
   </Dialog>
+}
+
+function OpinionReaderDialog({ payload, close }: { payload: Record<string, unknown>; close: () => void }) {
+  const { data } = useWorkspace()
+  const service = data.settings.approvedServices.find(s => s.id === 'svc_courtlistener')
+  const opinionId = S(payload.opinionId)
+  const caseName = S(payload.caseName, 'Opinion')
+  const citation = S(payload.citation)
+  const court = S(payload.court)
+  const year = S(payload.year)
+  const storedText = S(payload.text)
+  const [text, setText] = useState(storedText)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const load = async () => {
+    if (!opinionId) return
+    setBusy(true)
+    setError(null)
+    try {
+      setText(await fetchOpinionText({ opinionId, token: service?.approved ? service.token : '', endpoint: service?.endpoint }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The opinion could not be loaded.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  useEffect(() => {
+    if (!storedText && opinionId) void load()
+    // The reader opens for one opinion; fetch once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const paragraphs = useMemo(() => opinionParagraphs(text), [text])
+  const isHeading = (paragraph: string) =>
+    paragraph.length < 120 &&
+    ((paragraph === paragraph.toUpperCase() && /[A-Z]/.test(paragraph)) ||
+      /^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s/.test(paragraph))
+  return (
+    <Dialog
+      title={caseName}
+      eyebrow="Opinion reader"
+      subtitle={[citation, court, year].filter(Boolean).join(' · ') || 'Full opinion text'}
+      onClose={close}
+      width="980px"
+      footer={<><span className="tiny" style={{ marginRight: 'auto' }}>Read inside the workspace. Text is provided by CourtListener.</span><Button onClick={close}>Close</Button></>}
+    >
+      {busy ? <div className="tiny">Loading the opinion text…</div> : null}
+      {error ? <div className="session-warning">{error}<div style={{ marginTop: 8 }}><Button size="sm" onClick={() => void load()}>Try again</Button></div></div> : null}
+      {!text && !busy && !error ? <div className="tiny">No opinion text is available for this authority. Search for it again to read the full text.</div> : null}
+      {paragraphs.length ? <div className="opinion-reader">{paragraphs.map((paragraph, index) => isHeading(paragraph) ? <h3 key={index}>{paragraph}</h3> : <p key={index}>{paragraph}</p>)}</div> : null}
+    </Dialog>
+  )
 }
 
 function ExhibitDialog({ payload, close, edit }: { payload: Record<string, unknown>; close: () => void; edit: boolean }) {

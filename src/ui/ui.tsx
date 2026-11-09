@@ -25,6 +25,7 @@ export type DialogKind =
   | 'flag-citation'
   | 'new-authority'
   | 'save-authority'
+  | 'opinion-reader'
   | 'add-exhibit'
   | 'edit-exhibit'
   | 'exhibit-xref'
